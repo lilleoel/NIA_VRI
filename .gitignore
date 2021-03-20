@@ -1,0 +1,7 @@
+#FIND DATA
+import_data.R
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
