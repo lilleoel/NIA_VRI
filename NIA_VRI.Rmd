@@ -1,0 +1,65 @@
+---
+title: "Statistics for NIA VRI"
+author: "Olsen MH"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
+  word_document:
+    toc: yes
+    toc_depth: '2'
+subtitle: Using simulated data
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(huxtable)
+library(flextable)
+
+source("_import_data.R")
+source("_data_handling.R")
+
+source("_functions.R")
+
+
+```
+
+\newpage
+# Baseline characteristics
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tbl1_func(df_char,c("Age"),c("dianosis","Gender"),"VRI")
+
+```
+
+\newpage
+
+## X-Y (primary)
+X
+
+### Results
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 2, fig.width = 7, fig.align = "center"}
+
+var <- "X-Y"
+tbl_cont_func(df,var)
+result <- lin_reg(df,paste0(var," \\("))
+
+fig_lin_assumptions(result, name=var)
+
+fig_num_cont(df, var, " ", var,"median")  + labs(tag="A")
+
+temp <- rbind(
+   c(var, result$lin_p))
+colnames(temp) <- c(" ","p-value")
+
+df_to_linreg(data.frame(temp, check.names=F))
+
+```
+
