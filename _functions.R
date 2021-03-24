@@ -5,7 +5,7 @@ library(gridExtra)
 library(Hmisc)
 library(nlme)
 
-
+###### HELPER FUNCTIONS ######
 
 FitFlextableToPage <- function(ft, pgwidth = 6){
    

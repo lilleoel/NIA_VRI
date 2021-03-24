@@ -21,11 +21,11 @@ library(knitr)
 library(kableExtra)
 library(huxtable)
 library(flextable)
-
+source("_functions.R")
 source("_import_data.R")
 source("_data_handling.R")
 
-source("_functions.R")
+
 
 
 ```

@@ -68,15 +68,15 @@ rm(df_biokemi,df_blood,df_csv,df_mikro,temp_blood,temp_csv)
 
 df_pop <- df_pop[df_pop$Complete. == "Complete" & df_pop$CPR != "",]
 
-df_pop$EVD.end <- df_pop$Shunt.anlÃ.ggelsesdato
+df_pop$EVD.end <- df_pop$Shunt.anl_ggelsesdato
 df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$EVD.1...Seponeringsdato[df_pop$EVD.end == ""]
-df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$DÃ.dsdato[df_pop$EVD.end == ""]
+df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$D_dsdato[df_pop$EVD.end == ""]
 df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$Overflytningsdato[df_pop$EVD.end == ""]
 
-df_pop$VRI.mistanke.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""] <- df_pop$VRI.bekrÃ.ftet.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""]
-df_pop$VRI.mistanke.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""] <- df_pop$VRI.bekrÃ.ftet.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""]
+#df_pop$VRI.mistanke.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""] <- df_pop$VRI.bekræftet.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""]
+#df_pop$VRI.mistanke.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""] <- df_pop$VRI.bekræftet.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""]
 
-df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundÃ.rt..pÃ..senere.tidspunkt.end.primÃ.re.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.EndovaskulÃ.r.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","DÃ.d","VRI.status","EVD.1...Placeringsdato.","EVD.end","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","PrÃ.parat..choice.Gentamicin.","PrÃ.parat..choice.Vancomycin.","PrÃ.parat..choice.Andet.")]
+df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..p_.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.end","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.")]
 colnames(df_char) <- c("pt_id","diagnosis","diagnosis.other","ictus","EVD.side","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","VRI.start","VRI.end","VRI.Gentamicin","VRI.Vancomycin","VRI.Other")
 df_char <- data.frame(apply(df_char,2,function(x)gsub("Checked|Ja",1,x)))
 df_char <- data.frame(apply(df_char,2,function(x)gsub("Unchecked|Nej",0,x)))
