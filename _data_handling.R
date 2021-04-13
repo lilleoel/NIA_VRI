@@ -47,12 +47,12 @@ suppressWarnings(df_blood <- reshape(df_blood,idvar="time",timevar="sample",v.na
 df_blood <- df_blood[order(df_blood$time),]
 
 
-#Identificér nærmeste relevante værdi, med max 12 timer
+#Identificér nærmeste relevante værdi, med max 24 timer
 df_samples <- NULL
 for(i in c(1:nrow(df_csv))){
 
    temp_csv <- df_csv[i,]
-   temp_blood <- df_blood[df_blood$pt_id == temp_csv$pt_id & df_blood$time < temp_csv$time & df_blood$time > temp_csv$time-24*60*60,]
+   temp_blood <- df_blood[df_blood$pt_id == temp_csv$pt_id & df_blood$time < temp_csv$time+3*60*60 & df_blood$time > temp_csv$time-24*60*60,]
    temp_blood <- temp_blood[,-c(1:2)]
    suppressWarnings(temp_blood <- data.frame(t(apply(temp_blood,2,function(x)x[max(which(!is.na(x)))]))))
    temp_csv <- cbind(temp_csv,temp_blood)
@@ -68,19 +68,36 @@ rm(df_biokemi,df_blood,df_csv,df_mikro,temp_blood,temp_csv)
 
 df_pop <- df_pop[df_pop$Complete. == "Complete" & df_pop$CPR != "",]
 
-df_pop$EVD.end <- df_pop$Shunt.anl_ggelsesdato
-df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$EVD.1...Seponeringsdato[df_pop$EVD.end == ""]
-df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$D_dsdato[df_pop$EVD.end == ""]
-df_pop$EVD.end[df_pop$EVD.end == ""] <- df_pop$Overflytningsdato[df_pop$EVD.end == ""]
+df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..på.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.1...Seponeringsdato","Shunt.anlæggelsesdato","Dødsdato","Overflytningsdato","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","VRI.bekræftet.behandlingsstart","VRI.bekræftet.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.","CSV.D.R")]
+colnames(df_char) <- c("pt_id","Diagnosis","diagnosis.other","ictus","EVD.Bilateral","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","EVD.end2","EVD.end3","EVD.end4","VRI.start","VRI.end","VRI.start2","VRI.end2","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","DR")
 
-#df_pop$VRI.mistanke.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""] <- df_pop$VRI.bekræftet.behandlingsstart[df_pop$VRI.mistanke.behandlingsstart == ""]
-#df_pop$VRI.mistanke.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""] <- df_pop$VRI.bekræftet.behandlingsslut[df_pop$VRI.mistanke.behandlingsslut == ""]
+df_char <- df_char[df_char$VRI != "",]
 
-df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..p_.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.end","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.")]
-colnames(df_char) <- c("pt_id","diagnosis","diagnosis.other","ictus","EVD.side","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","VRI.start","VRI.end","VRI.Gentamicin","VRI.Vancomycin","VRI.Other")
+#Group filtering
+df_char$VRI[grepl("Mistanke uden behandling|Ingen mistanke",df_char$VRI)] <- "VRI-negative"
+df_char$VRI[grepl("Mistanke \\+ behandling",df_char$VRI)] <- "VRI-treated"
+df_char$VRI[grepl("Diagnosticeret \\+ behandling",df_char$VRI)] <- "VRI-positive"
+
+#Diagnosis filtering
+df_char <- df_char[grepl("TBI|ICH|SAH",df_char$Diagnosis),]
+df_char$Diagnosis[grepl("AVM",df_char$Diagnosis)] <- "SAH, other"
+df_char$Diagnosis[grepl("aneurism",df_char$Diagnosis)] <- "SAH, aneurysmal"
+
+df_char$EVD.end[df_char$EVD.end == ""] <- df_char$EVD.end2[df_char$EVD.end == ""]
+df_char$EVD.end[df_char$EVD.end == ""] <- df_char$EVD.end3[df_char$EVD.end == ""]
+df_char$EVD.end[df_char$EVD.end == ""] <- df_char$EVD.end4[df_char$EVD.end == ""]
+df_char$EVD.end2 <- NULL
+df_char$EVD.end3 <- NULL
+df_char$EVD.end4 <- NULL
+
+df_char$VRI.start[df_char$VRI.start == ""] <- df_char$VRI.start2[df_char$VRI.start == ""]
+df_char$VRI.end[df_char$VRI.end == ""] <- df_char$VRI.end2[df_char$VRI.end == ""]
+df_char$VRI.start2 <- NULL
+df_char$VRI.end2 <- NULL
+
 df_char <- data.frame(apply(df_char,2,function(x)gsub("Checked|Ja",1,x)))
 df_char <- data.frame(apply(df_char,2,function(x)gsub("Unchecked|Nej",0,x)))
-df_char$EVD.side[df_char$EVD.side.2 != "" & df_char$EVD.side != df_char$EVD.side.2] <- "Bilat"
+df_char$EVD.Bilateral[df_char$EVD.side.2 != "" & df_char$EVD.Bilateral != df_char$EVD.side.2] <- "Bilat"
 df_char$EVD.side.2 <- NULL
 df_char$VRI.1 <- NULL
 df_char$pt_id <- gsub("-","",df_char$pt_id)
@@ -90,23 +107,54 @@ df_char$EVD.start <- as.Date(df_char$EVD.start, format="%Y-%m-%d")
 df_char$VRI.end <- as.Date(df_char$VRI.end, format="%Y-%m-%d")
 df_char$VRI.start <- as.Date(df_char$VRI.start, format="%Y-%m-%d")
 
-df_char$EVD.duration <- df_char$EVD.end-df_char$EVD.start
-df_char$Treatment.duration <- df_char$VRI.end-df_char$VRI.start
-df_char$Time.to.Treatment <- df_char$VRI.start-df_char$EVD.start
+df_char$EVD.duration <- as.numeric(df_char$EVD.end-df_char$EVD.start)
+df_char$Treatment.duration <- as.numeric(df_char$VRI.end-df_char$VRI.start)
+df_char$Time.to.Treatment <- as.numeric(df_char$VRI.start-df_char$EVD.start)
 df_char$Age <- round(as.numeric(difftime(as.Date(df_char$ictus),as.Date(paste0("19",substr(df_char$pt_id,5,6),"-",substr(df_char$pt_id,3,4),"-",substr(df_char$pt_id,1,2))),unit="days")/365.25),digits=0)
 df_char$Gender <- as.numeric(substr(df_char$pt_id,10,10)) %% 2
 
-rm(df_pop)
-
+df_char$EVD.Bilateral[grepl("Hø|Ve",df_char$EVD.Bilateral)] <- 0
+df_char$EVD.Bilateral[grepl("Bil",df_char$EVD.Bilateral)] <- 1
 
 #Remove non relevant samples
-temp <- df_samples
-df_samples <- NULL
-for(i in c(1:nrow(df_char))){
-   if(is.na(df_char$VRI.start[i])){ temp_start <- as.Date("2099-01-01") }else{ temp_start <- df_char$VRI.start[i]+1 }
-   temp2 <- temp[temp$pt_id == df_char$pt_id[i] & temp$date >= df_char$EVD.start[i] & temp$date <= temp_start,]
-   temp2 <- temp2[!is.na(temp2$pt_id),]
-   df_samples <- rbind(df_samples,temp2)
-}   
-rm(temp2,temp,i,temp_start)   
+df_samples <- merge(df_char,df_samples,by="pt_id",all.y = T)
+df_samples <- df_samples[!is.na(df_samples$Diagnosis),]
 
+#Add number of samples
+temp <- aggregate(df_samples$pt_id,by=list(df_samples$pt_id),function(x)length(x))
+colnames(temp) <- c("pt_id","Number.of.CSV")
+df_samples <- merge(df_samples, temp, by="pt_id")
+
+df_samples$filter_date <- df_samples$VRI.start
+df_samples$filter_date[is.na(df_samples$filter_date)] <- df_samples$EVD.end[is.na(df_samples$filter_date)]+1
+
+#Remove samples after initiation of treatment of Ventrikulitis
+df_samples <- df_samples[df_samples$date <= df_samples$filter_date,]
+df_samples <- df_samples[order(df_samples$pt_id,df_samples$date),]
+rownames(df_samples) <- c(1:nrow(df_samples))
+
+temp <- df_samples[!duplicated(df_samples$pt_id, fromLast=TRUE),c("pt_id","time")]
+temp$last_sample <- 1
+df_samples <- merge(df_samples,temp,by=c("pt_id","time"),all.x=T)
+df_samples$last_sample[is.na(df_samples$last_sample)] <- 0
+
+#Group samples
+df_samples$sample_group <- "Negative"
+df_samples$sample_group[df_samples$VRI == "VRI-positive" & df_samples$last_sample == 1] <- "Positive"
+df_samples$sample_group[df_samples$VRI == "VRI-positive" & df_samples$last_sample == 0] <- "Negative, but positive later"
+df_samples$sample_group[df_samples$VRI == "VRI-treated" & df_samples$last_sample == 1] <- "Negative, but let to treatment"
+
+df_samples$CSV.WBC.RBC.ratio <- df_samples$CSV.WBC/df_samples$CSV.RBC
+df_samples$CSV.P.Glu.ratio <- df_samples$CSV.Glucose/df_samples$Blood.Glucose
+
+#Days to samples
+df_samples$Days.to.sample <- df_samples$date-df_samples$EVD.start
+
+#Only samples after ICTUS
+df_samples <- df_samples[df_samples$ictus < df_samples$date,]
+
+#FOR EXPORT TO PERNILLE - Comment out afterwards
+#df_pop <- data.frame(cbind(rownames(df_pop),df_pop$CPR))
+#colnames(df_pop) <- c("redcap_id","pt_id")
+#df_pop$pt_id <- gsub("-","",df_pop$pt_id)
+#write.csv2(merge(df_pop,df_samples,by="pt_id",all.y=T),file="L:/LovbeskyttetMapper/VRI Incidens og RF/df_samples-09-04-2021-v2.csv")

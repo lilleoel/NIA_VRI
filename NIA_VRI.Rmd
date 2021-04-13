@@ -21,45 +21,90 @@ library(knitr)
 library(kableExtra)
 library(huxtable)
 library(flextable)
-source("_functions.R")
-source("_import_data.R")
-source("_data_handling.R")
-
-
-
+library(ggpubr)
+source("_functions.R",encoding = "utf-8")
+source("_import_data.R",encoding = "utf-8")
+source("_data_handling.R",encoding = "utf-8")
 
 ```
 
 \newpage
-# Baseline characteristics
+# Table 1 - Baseline characteristics
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-tbl1_func(df_char,c("Age"),c("dianosis","Gender"),"VRI")
+tbl1_func(df_char,
+          c("Age","Gender","Diagnosis",
+            "Kraniotomi","Kraniektomi","Endovascular","EVD.Bilateral","EVD.replacement",
+            "EVD.duration","Time.to.Treatment","Treatment.duration","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","Shunt"),
+          c("Gender","Diagnosis","Shunt","Kraniotomi","Kraniektomi","Endovascular","Conservative",
+            "VRI.Gentamicin","VRI.Vancomycin","VRI.Other"),
+          c("Age","EVD.duration","Time.to.Treatment","Treatment.duration"),
+          "VRI")
+
+```
+
+\newpage
+# Table 2 - CSV characteristics
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tbl1_func(df_samples,
+          c("CSV.WBC","CSV.RBC","CSV.Glucose","CSV.Lactate","Blood.CRP",
+            "Blood.PCT"),
+          NULL,
+          c("CSV.WBC","CSV.RBC","CSV.Glucose","CSV.Lactate","Blood.CRP",
+            "Blood.PCT"),
+          "sample_group")
 
 ```
 
 \newpage
 
-## X-Y (primary)
-X
+## Figure 1 - Biomarkers
 
-### Results
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 1.5, fig.width = 7, fig.align = "center"}
+   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
+   group <- "sample_group"
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 2, fig.width = 7, fig.align = "center"}
+   fig_boxplot(df, var = "CSV.WBC.RBC.ratio", group, title = "CSF-WBC / CSF-RBC")
 
-var <- "X-Y"
-tbl_cont_func(df,var)
-result <- lin_reg(df,paste0(var," \\("))
+   fig_boxplot(df, var = "CSV.Protein", group, title = "CSF-Protein")
+   
+   fig_boxplot(df, var = "CSV.Lactate", group, title = "CSF-Lactate")
+   
+   fig_boxplot(df, var = "CSV.P.Glu.ratio", group, title = "CSF-Glu / P-Glu")
+   
+   fig_boxplot(df, var = "Blood.WBC", group, title = "B-WBC")
+   
+   fig_boxplot(df, var = "Blood.CRP", group, title = "P-CRP")
+   
+   fig_boxplot(df, var = "Blood.PCT", group, title = "P-PCT")
 
-fig_lin_assumptions(result, name=var)
-
-fig_num_cont(df, var, " ", var,"median")  + labs(tag="A")
-
-temp <- rbind(
-   c(var, result$lin_p))
-colnames(temp) <- c(" ","p-value")
-
-df_to_linreg(data.frame(temp, check.names=F))
 
 ```
 
+\newpage
+# Table 3 - Rule out VRI
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
+
+   FitFlextableToPage(flextable(data.frame(rbind(
+   pred_table(df,var="WBC/RBC ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio > 0.037"),
+   pred_table(df,var="CSF/plasma glucose ratio","df$sample_group == 'Positive'","df$CSV.P.Glu.ratio < 0.6"),
+   pred_table(df,var="CSF protein","df$sample_group == 'Positive'","df$CSV.Protein > 0.5"),
+   pred_table(df,var="High WBC/RBC ratio and high CSF protein and low glucose ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio > 0.037 & df$CSV.P.Glu.ratio < 0.6 & df$CSV.Protein > 0.5"),
+   pred_table(df,var="Low WBC/RBC ratio and low CSF protein  and high glucose ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio < 0.037 & df$CSV.P.Glu.ratio > 0.6 & df$CSV.Protein < 0.5")))))
+   
+
+```
+
+\newpage
+# Appendix 1 - Uni- and multivariable logistic regression for prediction of 'Positive'-sample
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+log_reg(df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",],
+        c("Age","CSV.WBC.RBC.ratio","Blood.CRP","Days.to.sample","CSV.P.Glu.ratio"),
+        "sample_group")
+
+
+```

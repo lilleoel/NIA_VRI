@@ -1,5 +1,7 @@
 #FIND DATA
 _import_data.R
+mikro.csv
+species.csv
 
 .Rproj.user
 .Rhistory
