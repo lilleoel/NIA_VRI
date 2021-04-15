@@ -15,10 +15,6 @@ df_biokemi$time <- as.POSIXct(df_biokemi$time,format="%d-%m-%Y %H:%M", tz="GMT")
 df_csv <- df_biokemi[grepl("csv",tolower(df_biokemi$sample)),]
 colnames(df_csv)[3] <- "csv"
 suppressWarnings(df_csv <- reshape(df_csv,idvar="time",timevar="sample",v.names="csv",direction="wide"))
-df_csv$kerner <- rowSums(df_csv[,c("csv.Eosinofilocytter;Csv","csv.Kerneholdige celler (uspec.);Csv","csv.Makrofager+monocytter;Csv","csv.Neutrofilocytter;Csv","csv.Smudge celler;Csv","csv.Leukocytter (mononukl.);Csv","csv.Leukocytter (mononukl.);Lkc(Csv)","csv.Leukocytter (polynukl.);Csv","csv.Leukocytter (polynukl.);Lkc(Csv)","csv.Leukocytter;Csv")],na.rm=T)
-df_csv$kerner[df_csv$kerner == 0] <- NA
-df_csv$`csv.Kerneholdige celler;Csv`[is.na(df_csv$`csv.Kerneholdige celler;Csv`)] <- df_csv$kerner[is.na(df_csv$`csv.Kerneholdige celler;Csv`)]
-df_csv$`csv.Erytrocytter;Csv`[is.na(df_csv$`csv.Erytrocytter;Csv`)] <- df_csv$`csv.Erytrocytter (mikr.);Csv`[is.na(df_csv$`csv.Erytrocytter;Csv`)]
 
 colnames(df_csv)[grepl("Kerneholdige celler;Csv",colnames(df_csv))] <- "CSV.WBC"
 colnames(df_csv)[grepl("Protein",colnames(df_csv))] <- "CSV.Protein"
@@ -68,15 +64,15 @@ rm(df_biokemi,df_blood,df_csv,df_mikro,temp_blood,temp_csv)
 
 df_pop <- df_pop[df_pop$Complete. == "Complete" & df_pop$CPR != "",]
 
-df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..på.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.1...Seponeringsdato","Shunt.anlæggelsesdato","Dødsdato","Overflytningsdato","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","VRI.bekræftet.behandlingsstart","VRI.bekræftet.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.","CSV.D.R")]
-colnames(df_char) <- c("pt_id","Diagnosis","diagnosis.other","ictus","EVD.Bilateral","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","EVD.end2","EVD.end3","EVD.end4","VRI.start","VRI.end","VRI.start2","VRI.end2","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","DR")
+df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..på.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.1...Seponeringsdato","Shunt.anlæggelsesdato","Dødsdato","Overflytningsdato","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","VRI.bekræftet.behandlingsstart","VRI.bekræftet.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.","CSV.D.R","Reoperation","Død")]
+colnames(df_char) <- c("pt_id","Diagnosis","diagnosis.other","ictus","EVD.Bilateral","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","EVD.end2","EVD.end3","EVD.end4","VRI.start","VRI.end","VRI.start2","VRI.end2","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","DR","Reoperation","Mortality")
 
 df_char <- df_char[df_char$VRI != "",]
 
 #Group filtering
-df_char$VRI[grepl("Mistanke uden behandling|Ingen mistanke",df_char$VRI)] <- "VRI-negative"
-df_char$VRI[grepl("Mistanke \\+ behandling",df_char$VRI)] <- "VRI-treated"
-df_char$VRI[grepl("Diagnosticeret \\+ behandling",df_char$VRI)] <- "VRI-positive"
+df_char$VRI[grepl("Mistanke uden behandling|Ingen mistanke",df_char$VRI)] <- "No VRI"
+df_char$VRI[grepl("Mistanke \\+ behandling",df_char$VRI)] <- "Culture-negative VRI"
+df_char$VRI[grepl("Diagnosticeret \\+ behandling",df_char$VRI)] <- "Culture-positive VRI"
 
 #Diagnosis filtering
 df_char <- df_char[grepl("TBI|ICH|SAH",df_char$Diagnosis),]
@@ -140,9 +136,9 @@ df_samples$last_sample[is.na(df_samples$last_sample)] <- 0
 
 #Group samples
 df_samples$sample_group <- "Negative"
-df_samples$sample_group[df_samples$VRI == "VRI-positive" & df_samples$last_sample == 1] <- "Positive"
-df_samples$sample_group[df_samples$VRI == "VRI-positive" & df_samples$last_sample == 0] <- "Negative, but positive later"
-df_samples$sample_group[df_samples$VRI == "VRI-treated" & df_samples$last_sample == 1] <- "Negative, but let to treatment"
+df_samples$sample_group[df_samples$VRI == "Culture-positive VRI" & df_samples$last_sample == 1] <- "Positive"
+df_samples$sample_group[df_samples$VRI == "Culture-positive VRI" & df_samples$last_sample == 0] <- "Negative, but positive later"
+df_samples$sample_group[df_samples$VRI == "Culture-negative VRI" & df_samples$last_sample == 1] <- "Negative, but let to treatment"
 
 df_samples$CSV.WBC.RBC.ratio <- df_samples$CSV.WBC/df_samples$CSV.RBC
 df_samples$CSV.P.Glu.ratio <- df_samples$CSV.Glucose/df_samples$Blood.Glucose

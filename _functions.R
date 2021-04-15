@@ -14,6 +14,12 @@ FitFlextableToPage <- function(ft, pgwidth = 6){
    ft_out <- width(ft_out, width = dim(ft_out)$widths*pgwidth /(flextable_dim(ft_out)$widths))
    return(ft_out)
 }
+quiet <- function(x) { 
+   sink(tempfile()) 
+   on.exit(sink()) 
+   invisible(force(x)) 
+} 
+
 
 ###### Simulated data ######
 var_rand <- function(n, no_groups){ # <- for grouping
@@ -44,32 +50,30 @@ var_sample <- function(n, min, max){ #  <- for normaldistributed data
 
 ###### Table 1 ###### 
 
-tbl1_func <- function(df, vars, cat_vars, nonnormal_vars, strat_var){
+tbl_func <- function(df, strat_var, vars = NULL, Grepl=FALSE){
+   require(Publish)
    
-   quiet <- function(x) { 
-      sink(tempfile()) 
-      on.exit(sink()) 
-      invisible(force(x)) 
-   } 
+   if(Grepl) vars <- colnames(df)[grepl(paste0(vars,collapse="|"),colnames(df))]
+   vars <- paste0("`",vars,"`")
    
-   tbl1 <- CreateTableOne(vars = vars, strata = strat_var, 
-                          data = df, factorVars = cat_vars, addOverall = TRUE,
-                          test = FALSE, includeNA = TRUE)
-   temp <- quiet(print(tbl1, nonnormal = nonnormal_vars))
-   temp <- temp[,c(2:ncol(temp),1)]
+   temp <- univariateTable(formula(paste0(strat_var, "~",paste0(vars,collapse="+"))),data=df, compare.groups = F)
+   temp <- quiet(print(temp))
    
+   for(i in unique(temp$Variable)){
+      if(length(levels(as.factor(df[[i]]))) == 2){
+         temp$Variable[which(temp$Variable %in% i)+1] <- temp$Variable[which(temp$Variable %in% i)]
+         temp <- temp[!(temp$Variable == i & temp$Level == levels(as.factor(df[[i]]))[1]),] 
+      }
+   }
    
-   tbl1$table <- temp
-   tbl1$table <- data.frame(cbind(rownames(tbl1$table),tbl1$table), check.names = F)
-   colnames(tbl1$table)[1] <- " "
-   tbl1$missingdata <- round(tbl1$MetaData$percentMissing[tbl1$MetaData$percentMissing > 0],digits=1)
-   tbl1$missingdata <- paste(names(tbl1$missingdata),paste0(tbl1$missingdata,sep=" %"),sep=": ",collapse="; " )
-   md <- paste0("Missing data: ", tbl1$missingdata)
+   colnames(temp)[1] <- "  "
+   colnames(temp)[2] <- " "
+   colnames(temp) <- gsub("\\(","\n\\(",colnames(temp))
+   colnames(temp) <- gsub(paste0(strat_var," = "),"",colnames(temp))
    
-   tbl1$table <- merge_at(add_footer(merge_at(add_header(flextable(tbl1$table),` `="Baseline characteristics"),part="header", i=1, j=1:ncol(tbl1$table)), ` `=paste0("Missing data: ", tbl1$missingdata)),j=1:ncol(tbl1$table),part="footer")
+   temp[] <- lapply(temp,FUN=function(x) gsub("NaN \\(NA\\)","",x))
    
-   return(FitFlextableToPage(tbl1$table))
-   
+   return(FitFlextableToPage(align(flextable(data.frame(temp, check.names = F)),align="center",part="header")))
 }
 
 
@@ -158,28 +162,30 @@ tbl1_func <- function(df, vars, cat_vars, nonnormal_vars, strat_var){
          theme(plot.subtitle = element_text(hjust=0.5, face="bold")) +
          scale_color_manual(values=c("#666666", "#000000")) +
          theme(axis.title = element_blank(), axis.text.y = element_text(angle=0)) +
-         theme(legend.position = "none") + coord_flip()
+         theme(legend.position = "none") + coord_flip() + theme(plot.margin=unit(c(0,0,0,0), "mm"))
       
       return(g1)
    }
 
 ###### PPV ###### 
-   library(epiR)
 
-   pred_table <- function(df, var, group_criteria,test_criteria){
-   
+  pred_table <- function(df, var, group_criteria,test_criteria, cols){
+
+      df <- df[,cols][complete.cases(df[,cols]),]
       temp <- NULL
       temp$outcome <- eval(parse(text = test_criteria))
       temp$group <- eval(parse(text = group_criteria))
+      temp <- data.frame(temp)[complete.cases(temp),]
       temp <- table(temp)[2:1,2:1]
-      temp <- round(summary(epi.tests(temp)),digits=2)
+      res_temp <- epiR::epi.tests(temp)
+      temp <- round(summary(res_temp),digits=2)
       temp$est <- paste0(temp$est, " (", temp$lower,"-", temp$upper,")")
       temp$lower <- NULL
       temp$upper <- NULL
-      
-      output <- data.frame(cbind(var,temp["se",],temp["sp",],temp["ppv",],temp["npv",]))
+      output <- data.frame(cbind(paste0(var, " (n=",res_temp$tab[3,3],")"),temp["se",],temp["sp",],temp["ppv",],temp["npv",]))
       colnames(output) <- c("Variables","Sensitivity","Specificity","PPV","NPV")
-    
+      
+      
       return(output)  
    }
    
