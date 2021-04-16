@@ -36,18 +36,17 @@ source("_data_handling.R",encoding = "utf-8")
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 tbl_func(df_char, strat_var = "VRI",
           c("Age","Gender","Diagnosis",
-            "Kraniotomi","Kraniektomi","Endovascular","EVD.Bilateral","EVD.replacement","Reoperation",
-            "EVD.duration","Time.to.Treatment","Treatment.duration","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","Shunt","Mortality"))
+            "Craniotomy","Craniectomy","Endovascular","EVD.Bilateral","EVD.replacement","Reoperation",
+            "EVD.duration","Time.to.Treatment","Treatment.duration","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","After.EVD","Mortality"))
 
 ```
 
 \newpage
-# Table 2 - CSV characteristics
+# Table 2 - CSF characteristics
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 tbl_func(df_samples, strat_var = "sample_group",
-          c("CSV.WBC","CSV.RBC","CSV.Glucose","CSV.Lactate","Blood.CRP","CSV.WBC.RBC.ratio",
-            "Blood.PCT"))
+          c("Days.to.sample","CSF.WBC","CSF.RBC","CSF.Glucose","CSF.Lactate","Blood.CRP","CSF.WBC.RBC.ratio"))
 
 ```
 
@@ -58,11 +57,11 @@ tbl_func(df_samples, strat_var = "sample_group",
    df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
 
    FitFlextableToPage(flextable(data.frame(rbind(
-   pred_table(df,var="WBC/RBC ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio > 0.037",cols = c("sample_group","CSV.WBC.RBC.ratio")),
-   pred_table(df,var="CSF/plasma glucose ratio","df$sample_group == 'Positive'","df$CSV.P.Glu.ratio < 0.6",cols = c("sample_group","CSV.P.Glu.ratio")),
-   pred_table(df,var="CSF protein","df$sample_group == 'Positive'","df$CSV.Protein > 0.5",cols = c("sample_group","CSV.Protein")),
-   pred_table(df,var="High WBC/RBC ratio and high CSF protein and low glucose ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio > 0.037 & df$CSV.P.Glu.ratio < 0.6 & df$CSV.Protein > 0.5",cols = c("sample_group","CSV.WBC.RBC.ratio","CSV.P.Glu.ratio","CSV.Protein")),
-   pred_table(df,var="Low WBC/RBC ratio and low CSF protein  and high glucose ratio","df$sample_group == 'Positive'","df$CSV.WBC.RBC.ratio < 0.037 & df$CSV.P.Glu.ratio > 0.6 & df$CSV.Protein < 0.5",cols = c("sample_group","CSV.WBC.RBC.ratio","CSV.P.Glu.ratio","CSV.Protein"))))))
+   pred_table(df,var="WBC/RBC ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio > 0.037",cols = c("sample_group","CSF.WBC.RBC.ratio")),
+   pred_table(df,var="CSF/plasma glucose ratio","df$sample_group == 'Positive'","df$CSF.P.Glu.ratio < 0.6",cols = c("sample_group","CSF.P.Glu.ratio")),
+   pred_table(df,var="CSF protein","df$sample_group == 'Positive'","df$CSF.Protein > 0.5",cols = c("sample_group","CSF.Protein")),
+   pred_table(df,var="High WBC/RBC ratio and high CSF protein and low glucose ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio > 0.037 & df$CSF.P.Glu.ratio < 0.6 & df$CSF.Protein > 0.5",cols = c("sample_group","CSF.WBC.RBC.ratio","CSF.P.Glu.ratio","CSF.Protein")),
+   pred_table(df,var="Low WBC/RBC ratio and low CSF protein  and high glucose ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio < 0.037 & df$CSF.P.Glu.ratio > 0.6 & df$CSF.Protein < 0.5",cols = c("sample_group","CSF.WBC.RBC.ratio","CSF.P.Glu.ratio","CSF.Protein"))))))
    
 
 ```
@@ -74,11 +73,11 @@ tbl_func(df_samples, strat_var = "sample_group",
    df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
    group <- "sample_group"
 
-   fig_boxplot(df, var = "CSV.WBC.RBC.ratio", group, title = "A) CSF-WBC / CSF-RBC")
+   fig_boxplot(df, var = "CSF.WBC.RBC.ratio", group, title = "A) CSF-WBC / CSF-RBC")
 
-   fig_boxplot(df, var = "CSV.Protein", group, title = "B) CSF-Protein")
+   fig_boxplot(df, var = "CSF.Protein", group, title = "B) CSF-Protein")
    
-   fig_boxplot(df, var = "CSV.P.Glu.ratio", group, title = "C) CSF-Glu / P-Glu")
+   fig_boxplot(df, var = "CSF.P.Glu.ratio", group, title = "C) CSF-Glu / P-Glu")
    
    fig_boxplot(df, var = "Blood.WBC", group, title = "D) B-WBC")
    
@@ -90,5 +89,74 @@ tbl_func(df_samples, strat_var = "sample_group",
 
 \newpage
 # Figure 2 - Timeline
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 4, fig.width = 7, fig.align = "center"}
+#PREPARATION ----
+col_id <- "pt_id"; col_group <- "VRI"; col_happn <- "After.EVD"; col_death <- "Mors.date"; 
+col_placement <- "EVD.start"; col_removal <- "EVD.end"
+col_VRI_start <- "VRI.start"; col_VRI_end <- "VRI.end"
+df <- df_char[df_char$After.EVD != "Transferred",]
 
-**PENDING**
+#FUNCTION STARTER
+timeline <- data.frame(day=c(0:40),'Culture-positive VRI'=0,'Culture-negative VRI'=0,
+                      'EVD'=0,'VP-shunt'=0,'EVD removed'=0,'Died'=0, check.names = F)
+
+#FIRST LOOP
+for(i in unique(df[[col_id]])){
+   
+   test <- df[df[[col_id]] == i,]
+   sep_day <- as.numeric(difftime(as.Date(test[[col_removal]]),as.Date(test[[col_placement]]), units="days"))
+   
+   if(is.na(test[[col_death]])) test[[col_death]] <- ""
+   if(is.na(test[[col_VRI_start]])) test[[col_VRI_start]] <- ""
+   
+   if(nchar(test[[col_death]]) > 0) {
+      death_day <- as.numeric(difftime(as.Date(test[[col_death]]),as.Date(test[[col_placement]]), units="days"))
+   }else { death_day <- 999 }
+   if(nchar(test[[col_VRI_start]]) > 0){
+      start_treat_day <- as.numeric(difftime(as.Date(test[[col_VRI_start]]),as.Date(test[[col_placement]]), units="days"))
+   }else { start_treat_day <- 999 }
+   
+   for(j in 0:40){
+         
+      if(j < sep_day){
+         if(test[[col_group]] == "Culture-positive VRI" & j >= start_treat_day){
+            timeline[timeline$day == j,"Culture-positive VRI"] <- timeline[timeline$day == j,"Culture-positive VRI"]+1
+         }else if(test[[col_group]] == "Culture-negative VRI" & j >= start_treat_day){
+            timeline[timeline$day == j,"Culture-negative VRI"] <- timeline[timeline$day == j,"Culture-negative VRI"]+1
+         }else{
+            timeline[timeline$day == j,"EVD"] <- timeline[timeline$day == j,"EVD"]+1
+         }
+
+      }else if(j >= sep_day){
+         #Ting efter removal
+         if(j >= death_day){
+            timeline[timeline$day == j,"Died"] <- timeline[timeline$day == j,"Died"]+1
+         }else if(test[[col_happn]] == "VP-shunt"){
+            timeline[timeline$day == j,"VP-shunt"] <- timeline[timeline$day == j,"VP-shunt"]+1
+         }else{
+            timeline[timeline$day == j,"EVD removed"] <- timeline[timeline$day == j,"EVD removed"]+1
+         }
+            
+      }
+   }
+}
+   
+ 
+#Indlæs data
+library(tidyr)
+df <- gather(timeline, condition, measurement, `Culture-positive VRI`:`Died`, factor_key=TRUE)
+df$condition <- factor(df$condition, levels=rev(levels(df$condition)))
+
+library(ggplot2)
+library(RColorBrewer)
+ggplot(data=df, aes(x=day, y=measurement, fill=condition, color=condition)) + geom_area() + theme_minimal() +
+   scale_fill_manual(name="",values=brewer.pal(6, name="YlOrRd")) +
+   scale_color_manual(name="",values=c(rep("#000000", each=6))) +
+    labs(y="n", x="days") +
+   guides(fill=guide_legend(nrow=1,byrow=TRUE,reverse=TRUE),color=guide_legend(nrow=1,byrow=TRUE,reverse=TRUE)) +
+   theme_bw() + 
+   theme(panel.grid = element_blank(),
+         panel.border = element_blank()) +
+   theme(legend.position="bottom",)
+#4x7
+```

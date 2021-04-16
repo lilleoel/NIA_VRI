@@ -73,6 +73,9 @@ tbl_func <- function(df, strat_var, vars = NULL, Grepl=FALSE){
    
    temp[] <- lapply(temp,FUN=function(x) gsub("NaN \\(NA\\)","",x))
    
+   temp <- data.frame(temp, check.names = F)
+   temp[[1]] <- gsub("\\."," ",temp[[1]])
+   
    return(FitFlextableToPage(align(flextable(data.frame(temp, check.names = F)),align="center",part="header")))
 }
 
@@ -189,4 +192,6 @@ tbl_func <- function(df, strat_var, vars = NULL, Grepl=FALSE){
       return(output)  
    }
    
+   
+      
    

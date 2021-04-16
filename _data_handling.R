@@ -1,7 +1,7 @@
 #Ordne mikrobiologi
 colnames(df_mikro) <- c("pt_id","date","species","ammount")
-df_mikro$CSV.culture[grepl("Ingen|Der er ikke",df_mikro$species) | df_mikro$species == ""] <- "Neg"
-df_mikro$CSV.culture[is.na(df_mikro$CSV.culture)] <- "Pos"
+df_mikro$CSF.culture[grepl("Ingen|Der er ikke",df_mikro$species) | df_mikro$species == ""] <- "Neg"
+df_mikro$CSF.culture[is.na(df_mikro$CSF.culture)] <- "Pos"
 
 
 #Ordne biokemi
@@ -11,22 +11,22 @@ suppressWarnings(df_biokemi$result <- as.numeric(df_biokemi$result))
 df_biokemi <- df_biokemi[complete.cases(df_biokemi),]
 df_biokemi$time <- as.POSIXct(df_biokemi$time,format="%d-%m-%Y %H:%M", tz="GMT")
 
-#Lave én CSV-prøve række.
-df_csv <- df_biokemi[grepl("csv",tolower(df_biokemi$sample)),]
-colnames(df_csv)[3] <- "csv"
-suppressWarnings(df_csv <- reshape(df_csv,idvar="time",timevar="sample",v.names="csv",direction="wide"))
+#Lave én CSF-prøve række.
+df_CSF <- df_biokemi[grepl("csv",tolower(df_biokemi$sample)),]
+colnames(df_CSF)[3] <- "CSV"
+suppressWarnings(df_CSF <- reshape(df_CSF,idvar="time",timevar="sample",v.names="CSV",direction="wide"))
 
-colnames(df_csv)[grepl("Kerneholdige celler;Csv",colnames(df_csv))] <- "CSV.WBC"
-colnames(df_csv)[grepl("Protein",colnames(df_csv))] <- "CSV.Protein"
-colnames(df_csv)[grepl("Erytrocytter;Csv",colnames(df_csv))] <- "CSV.RBC"
-colnames(df_csv)[grepl("Glukose",colnames(df_csv))] <- "CSV.Glucose"
-colnames(df_csv)[grepl("Laktat",colnames(df_csv))] <- "CSV.Lactate"
+colnames(df_CSF)[grepl("Kerneholdige celler;C",colnames(df_CSF))] <- "CSF.WBC"
+colnames(df_CSF)[grepl("Protein",colnames(df_CSF))] <- "CSF.Protein"
+colnames(df_CSF)[grepl("Erytrocytter;Cs",colnames(df_CSF))] <- "CSF.RBC"
+colnames(df_CSF)[grepl("Glukose",colnames(df_CSF))] <- "CSF.Glucose"
+colnames(df_CSF)[grepl("Laktat",colnames(df_CSF))] <- "CSF.Lactate"
 
-df_csv <- df_csv[,grepl("pt_id|time|CSV",colnames(df_csv))]
+df_CSF <- df_CSF[,grepl("pt_id|time|CSF",colnames(df_CSF))]
 
 df_mikro$date <- as.Date(df_mikro$date, format="%d-%m-%Y")
-df_csv$date <- as.Date(df_csv$time)
-df_csv <- merge(df_csv,df_mikro[,c("pt_id","date","CSV.culture")],by=c("pt_id","date"),all.x = T)
+df_CSF$date <- as.Date(df_CSF$time)
+df_CSF <- merge(df_CSF,df_mikro[,c("pt_id","date","CSF.culture")],by=c("pt_id","date"),all.x = T)
 
 #Tilføje relevante blodprøver til disse
 df_blood <- df_biokemi[!grepl("csv",tolower(df_biokemi$sample)),]
@@ -45,18 +45,18 @@ df_blood <- df_blood[order(df_blood$time),]
 
 #Identificér nærmeste relevante værdi, med max 24 timer
 df_samples <- NULL
-for(i in c(1:nrow(df_csv))){
+for(i in c(1:nrow(df_CSF))){
 
-   temp_csv <- df_csv[i,]
-   temp_blood <- df_blood[df_blood$pt_id == temp_csv$pt_id & df_blood$time < temp_csv$time+3*60*60 & df_blood$time > temp_csv$time-24*60*60,]
+   temp_CSF <- df_CSF[i,]
+   temp_blood <- df_blood[df_blood$pt_id == temp_CSF$pt_id & df_blood$time < temp_CSF$time+3*60*60 & df_blood$time > temp_CSF$time-24*60*60,]
    temp_blood <- temp_blood[,-c(1:2)]
    suppressWarnings(temp_blood <- data.frame(t(apply(temp_blood,2,function(x)x[max(which(!is.na(x)))]))))
-   temp_csv <- cbind(temp_csv,temp_blood)
+   temp_CSF <- cbind(temp_CSF,temp_blood)
    
-   df_samples <- rbind(df_samples,temp_csv)
+   df_samples <- rbind(df_samples,temp_CSF)
 }
 
-rm(df_biokemi,df_blood,df_csv,df_mikro,temp_blood,temp_csv)
+#rm(df_biokemi,df_blood,df_CSF,df_mikro,temp_blood,temp_CSF)
 
 
 
@@ -64,8 +64,8 @@ rm(df_biokemi,df_blood,df_csv,df_mikro,temp_blood,temp_csv)
 
 df_pop <- df_pop[df_pop$Complete. == "Complete" & df_pop$CPR != "",]
 
-df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..på.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.1...Seponeringsdato","Shunt.anlæggelsesdato","Dødsdato","Overflytningsdato","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","VRI.bekræftet.behandlingsstart","VRI.bekræftet.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.","CSV.D.R","Reoperation","Død")]
-colnames(df_char) <- c("pt_id","Diagnosis","diagnosis.other","ictus","EVD.Bilateral","EVD.side.2","EVD.replacement","Kraniotomi","Kraniektomi","Endovascular","Conservative","Backsurgery","Burrhole","Shunt","Death","VRI","EVD.start","EVD.end","EVD.end2","EVD.end3","EVD.end4","VRI.start","VRI.end","VRI.start2","VRI.end2","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","DR","Reoperation","Mortality")
+df_char <- df_pop[,c("CPR","Diagnose","Diagnose..andet","Ictus","EVD.lokalisation","EVD.sekundært..på.senere.tidspunkt.end.primære.","Reanlagt.EVD","Operative.events..choice.Kraniotomi.","Operative.events..choice.Kraniektomi.","Operative.events..choice.Endovaskulær.","Operative.events..choice.Konservativ.","Operative.events..choice.Rygkirurgi.","Operative.events..choice.Borehul.","Seponering...Overflytning...VP.shunt.","Død","VRI.status","EVD.1...Placeringsdato.","EVD.1...Seponeringsdato","Shunt.anlæggelsesdato","Dødsdato","Overflytningsdato","VRI.mistanke.behandlingsstart","VRI.mistanke.behandlingsslut","VRI.bekræftet.behandlingsstart","VRI.bekræftet.behandlingsslut","Præparat..choice.Gentamicin.","Præparat..choice.Vancomycin.","Præparat..choice.Andet.","CSV.D.R","Reoperation","Død","Dødsdato")]
+colnames(df_char) <- c("pt_id","Diagnosis","diagnosis.other","ictus","EVD.Bilateral","EVD.side.2","EVD.replacement","Craniotomy","Craniectomy","Endovascular","Conservative","Backsurgery","Burrhole","After.EVD","Death","VRI","EVD.start","EVD.end","EVD.end2","EVD.end3","EVD.end4","VRI.start","VRI.end","VRI.start2","VRI.end2","VRI.Gentamicin","VRI.Vancomycin","VRI.Other","DR","Reoperation","Mortality","Mors.date")
 
 df_char <- df_char[df_char$VRI != "",]
 
@@ -118,7 +118,7 @@ df_samples <- df_samples[!is.na(df_samples$Diagnosis),]
 
 #Add number of samples
 temp <- aggregate(df_samples$pt_id,by=list(df_samples$pt_id),function(x)length(x))
-colnames(temp) <- c("pt_id","Number.of.CSV")
+colnames(temp) <- c("pt_id","Number.of.CSF")
 df_samples <- merge(df_samples, temp, by="pt_id")
 
 df_samples$filter_date <- df_samples$VRI.start
@@ -140,8 +140,8 @@ df_samples$sample_group[df_samples$VRI == "Culture-positive VRI" & df_samples$la
 df_samples$sample_group[df_samples$VRI == "Culture-positive VRI" & df_samples$last_sample == 0] <- "Negative, but positive later"
 df_samples$sample_group[df_samples$VRI == "Culture-negative VRI" & df_samples$last_sample == 1] <- "Negative, but let to treatment"
 
-df_samples$CSV.WBC.RBC.ratio <- df_samples$CSV.WBC/df_samples$CSV.RBC
-df_samples$CSV.P.Glu.ratio <- df_samples$CSV.Glucose/df_samples$Blood.Glucose
+df_samples$CSF.WBC.RBC.ratio <- df_samples$CSF.WBC/df_samples$CSF.RBC
+df_samples$CSF.P.Glu.ratio <- df_samples$CSF.Glucose/df_samples$Blood.Glucose
 
 #Days to samples
 df_samples$Days.to.sample <- df_samples$date-df_samples$EVD.start
@@ -149,8 +149,20 @@ df_samples$Days.to.sample <- df_samples$date-df_samples$EVD.start
 #Only samples after ICTUS
 df_samples <- df_samples[df_samples$ictus < df_samples$date,]
 
+df_samples$After.EVD <- gsub("Seponering","Removal",df_samples$After.EVD)
+df_samples$After.EVD <- gsub("Shunt","VP-shunt",df_samples$After.EVD)
+df_samples$After.EVD <- gsub("Overflytning","Transferred",df_samples$After.EVD)
+df_samples$Gender <- gsub(1,"Male",df_samples$Gender)
+df_samples$Gender <- gsub(0,"Female",df_samples$Gender)
+
+df_char$After.EVD <- gsub("Seponering","Removal",df_char$After.EVD)
+df_char$After.EVD <- gsub("Shunt","VP-shunt",df_char$After.EVD)
+df_char$After.EVD <- gsub("Overflytning","Transferred",df_char$After.EVD)
+df_char$Gender <- gsub(1,"Male",df_char$Gender)
+df_char$Gender <- gsub(0,"Female",df_char$Gender)
+
 #FOR EXPORT TO PERNILLE - Comment out afterwards
 #df_pop <- data.frame(cbind(rownames(df_pop),df_pop$CPR))
 #colnames(df_pop) <- c("redcap_id","pt_id")
 #df_pop$pt_id <- gsub("-","",df_pop$pt_id)
-#write.csv2(merge(df_pop,df_samples,by="pt_id",all.y=T),file="L:/LovbeskyttetMapper/VRI Incidens og RF/df_samples-09-04-2021-v2.csv")
+#write.CSF2(merge(df_pop,df_samples,by="pt_id",all.y=T),file="L:/LovbeskyttetMapper/VRI Incidens og RF/df_samples-09-04-2021-v2.CSF")
