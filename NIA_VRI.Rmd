@@ -1,19 +1,18 @@
 ---
 title: "Statistics for NIA VRI"
-author: "Olsen MH"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
-  word_document:
-    toc: yes
-    toc_depth: '2'
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_depth: '2'
   pdf_document:
     toc: yes
     toc_depth: '2'
     fig_crop: no
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
+  word_document:
+    toc: yes
+    toc_depth: '2'
 subtitle: Using simulated data
 ---
 
@@ -34,6 +33,7 @@ source("_data_handling.R",encoding = "utf-8")
 # Table 1 - Baseline characteristics
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
 tbl_func(df_char, strat_var = "VRI",
           c("Age","Gender","Diagnosis",
             "Craniotomy","Craniectomy","Endovascular","EVD.Bilateral","EVD.replacement","Reoperation",
@@ -45,16 +45,29 @@ tbl_func(df_char, strat_var = "VRI",
 # Table 2 - CSF characteristics
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-tbl_func(df_samples, strat_var = "sample_group",
-          c("Days.to.sample","CSF.WBC","CSF.RBC","CSF.Glucose","CSF.Lactate","Blood.CRP","CSF.WBC.RBC.ratio"))
+df <- df_samples
+df$sample_group[df$sample_group == "Negative, but let to treatment"] <- "Negative"
+tbl_func(df, strat_var = "sample_group",
+          c("Days.to.sample","CSF.WBC","CSF.RBC","CSF.Glucose","Blood.CRP","CSF.WBC.RBC.ratio"))
 
 ```
+
+\newpage
+# Table 2 - CSF characteristics (old groups)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tbl_func(df_samples, strat_var = "sample_group",
+          c("Days.to.sample","CSF.WBC","CSF.RBC","CSF.Glucose","Blood.CRP","CSF.WBC.RBC.ratio"))
+
+```
+
 
 \newpage
 # Table 3 - Rule out VRI
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
+      df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Negative, but let to treatment" | df_samples$sample_group == "Positive",]
+   df$sample_group[df$sample_group == "Negative, but let to treatment"] <- "Negative"
 
    FitFlextableToPage(flextable(data.frame(rbind(
    pred_table(df,var="WBC/RBC ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio > 0.037",cols = c("sample_group","CSF.WBC.RBC.ratio")),
@@ -63,27 +76,6 @@ tbl_func(df_samples, strat_var = "sample_group",
    pred_table(df,var="High WBC/RBC ratio and high CSF protein and low glucose ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio > 0.037 & df$CSF.P.Glu.ratio < 0.6 & df$CSF.Protein > 0.5",cols = c("sample_group","CSF.WBC.RBC.ratio","CSF.P.Glu.ratio","CSF.Protein")),
    pred_table(df,var="Low WBC/RBC ratio and low CSF protein  and high glucose ratio","df$sample_group == 'Positive'","df$CSF.WBC.RBC.ratio < 0.037 & df$CSF.P.Glu.ratio > 0.6 & df$CSF.Protein < 0.5",cols = c("sample_group","CSF.WBC.RBC.ratio","CSF.P.Glu.ratio","CSF.Protein"))))))
    
-
-```
-
-\newpage
-# Figure 1 - Biomarkers
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 1.5, fig.width = 7, fig.align = "center"}
-   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Positive",]
-   group <- "sample_group"
-
-   fig_boxplot(df, var = "CSF.WBC.RBC.ratio", group, title = "A) CSF-WBC / CSF-RBC")
-
-   fig_boxplot(df, var = "CSF.Protein", group, title = "B) CSF-Protein")
-   
-   fig_boxplot(df, var = "CSF.P.Glu.ratio", group, title = "C) CSF-Glu / P-Glu")
-   
-   fig_boxplot(df, var = "Blood.WBC", group, title = "D) B-WBC")
-   
-   fig_boxplot(df, var = "Blood.CRP", group, title = "E) P-CRP")
-   
-
 
 ```
 
@@ -159,4 +151,81 @@ ggplot(data=df, aes(x=day, y=measurement, fill=condition, color=condition)) + ge
          panel.border = element_blank()) +
    theme(legend.position="bottom",)
 #4x7
+```
+
+\newpage
+# Figure 3 - Biomarkers
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 1.5, fig.width = 7, fig.align = "center"}
+   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Negative, but let to treatment" | df_samples$sample_group == "Positive",]
+   df$sample_group[df$sample_group == "Negative, but let to treatment"] <- "Negative"
+   group <- "sample_group"
+
+   fig_boxplot(df, var = "CSF.WBC.RBC.ratio", group, title = "A) CSF-WBC / CSF-RBC")
+
+   fig_boxplot(df, var = "CSF.Protein", group, title = "B) CSF-Protein")
+   
+   fig_boxplot(df, var = "CSF.P.Glu.ratio", group, title = "C) CSF-Glu / P-Glu")
+   
+   fig_boxplot(df, var = "Blood.WBC", group, title = "D) B-WBC")
+   
+   fig_boxplot(df, var = "Blood.CRP", group, title = "E) P-CRP")
+   
+
+
+```
+
+
+\newpage
+# Appendix 1 - VERDICT - VEntriculitis RelateD InfeCTion risk stratification
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 3, fig.width = 7, fig.align = "center"}
+   df <- df_samples[df_samples$sample_group == "Negative" | df_samples$sample_group == "Negative, but let to treatment" | df_samples$sample_group == "Positive",]
+   df$sample_group[df$sample_group == "Negative, but let to treatment"] <- "Negative"
+   df <- df[!is.na(df$CSF.P.Glu.ratio) & !is.na(df$CSF.Protein) & !is.na(df$CSF.WBC.RBC.ratio) & !is.na(df$Days.to.sample),]
+
+   library(rpart)
+library("partykit")
+m1 <- summary(glm(as.factor(sample_group)~Days.to.sample+CSF.WBC.RBC.ratio+CSF.P.Glu.ratio+CSF.Protein, data=df, family="binomial"))
+print(m1$coefficients)
+
+plot(as.party(rpart(sample_group ~ Days.to.sample, data = df, method="class",
+                 control = rpart.control(maxdepth=1, cp=-1))))
+plot(as.party(rpart(sample_group ~ as.numeric(CSF.WBC.RBC.ratio*10), data = df, method="class",
+                    control = rpart.control(maxdepth=2, cp=-1))))
+plot(as.party(rpart(sample_group ~ CSF.P.Glu.ratio, data = df, method="class",
+                    control = rpart.control(maxdepth=2, cp=-1))))
+plot(as.party(rpart(sample_group ~ CSF.Protein, data = df, method="class",
+                    control = rpart.control(maxdepth=1, cp=-1))))
+
+df$risk <- 0
+df$risk[df$Days.to.sample >= 4.5] <- df$risk[df$Days.to.sample >= 4.5] + 1
+
+df$risk[df$CSF.WBC.RBC.ratio >= 0.133] <- df$risk[df$CSF.WBC.RBC.ratio >= 0.133] + 1
+df$risk[df$CSF.WBC.RBC.ratio >= 0.001] <- df$risk[df$CSF.WBC.RBC.ratio >= 0.001] + 1
+
+df$risk[df$CSF.P.Glu.ratio < 0.502] <- df$risk[df$CSF.P.Glu.ratio < 0.502] + 1
+df$risk[df$CSF.P.Glu.ratio < 0.318] <- df$risk[df$CSF.P.Glu.ratio < 0.318] + 1
+
+df$risk[df$CSF.Protein >= 1.15] <- df$risk[df$CSF.Protein >= 1.15] + 1
+
+ggplot(data=df, aes(risk))+
+   geom_bar(aes(fill=as.factor(sample_group)), position="fill") + scale_y_continuous(labels = scales::percent) + 
+   theme_minimal() + theme(legend.position = "bottom", legend.title=element_blank(), axis.title = element_blank())
+
+df_to_fig <- table(df$sample_group,df$risk)
+df_to_fig <- rbind(df_to_fig,colSums(df_to_fig))
+rownames(df_to_fig)[3] <- "Total"
+
+flextable(data.frame(df_to_fig))
+
+
+library(pROC)
+myroc <- roc(form=sample_group~as.numeric(risk),data=df)
+plot(myroc)
+print(auc(myroc))
+print(ci.auc(myroc))
+
 ```

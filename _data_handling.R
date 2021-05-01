@@ -7,6 +7,7 @@ df_mikro$CSF.culture[is.na(df_mikro$CSF.culture)] <- "Pos"
 #Ordne biokemi
 colnames(df_biokemi) <- c("pt_id","sample","result","time")
 df_biokemi$pt_id <- gsub("-","",df_biokemi$pt_id)
+df_biokemi$result[df_biokemi$result == "<3"] <- 2
 suppressWarnings(df_biokemi$result <- as.numeric(df_biokemi$result))
 df_biokemi <- df_biokemi[complete.cases(df_biokemi),]
 df_biokemi$time <- as.POSIXct(df_biokemi$time,format="%d-%m-%Y %H:%M", tz="GMT")
@@ -149,6 +150,11 @@ df_samples$Days.to.sample <- df_samples$date-df_samples$EVD.start
 #Only samples after ICTUS
 df_samples <- df_samples[df_samples$ictus < df_samples$date,]
 
+#Remove dublicates
+df_samples$unique_name <- paste0(df_samples$pt_id,df_samples$time)
+df_samples <- df_samples[match(unique(df_samples$unique_name), df_samples$unique_name),]
+
+
 df_samples$After.EVD <- gsub("Seponering","Removal",df_samples$After.EVD)
 df_samples$After.EVD <- gsub("Shunt","VP-shunt",df_samples$After.EVD)
 df_samples$After.EVD <- gsub("Overflytning","Transferred",df_samples$After.EVD)
@@ -162,7 +168,7 @@ df_char$Gender <- gsub(1,"Male",df_char$Gender)
 df_char$Gender <- gsub(0,"Female",df_char$Gender)
 
 #FOR EXPORT TO PERNILLE - Comment out afterwards
-#df_pop <- data.frame(cbind(rownames(df_pop),df_pop$CPR))
-#colnames(df_pop) <- c("redcap_id","pt_id")
-#df_pop$pt_id <- gsub("-","",df_pop$pt_id)
-#write.CSF2(merge(df_pop,df_samples,by="pt_id",all.y=T),file="L:/LovbeskyttetMapper/VRI Incidens og RF/df_samples-09-04-2021-v2.CSF")
+# df_pop <- data.frame(cbind(rownames(df_pop),df_pop$CPR))
+# colnames(df_pop) <- c("redcap_id","pt_id")
+# df_pop$pt_id <- gsub("-","",df_pop$pt_id)
+# write.csv2(merge(df_pop,df_samples,by="pt_id",all.y=T),file="L:/LovbeskyttetMapper/VRI Incidens og RF/df_samples-21-04-2021.csv")
